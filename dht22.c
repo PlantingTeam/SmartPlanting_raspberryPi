@@ -1,3 +1,10 @@
+/* 
+NAME	: dht22.c
+DESC	: Read and send an dht22 sensor data to mysql database server. The database server must specified and has a privilidge to write data.
+VERS	: kwangEun An - 2016.08.01 - Create functions to upload data to the database server.
+	  kwangEun An - 2016.08.16 - Added console arguments to debug and control displaying options.
+
+*/
 #include <wiringPi.h>
 #include <mysql/mysql.h>
 #include <stdio.h>
@@ -11,10 +18,11 @@
 
 #define MAXTIMINGS	85
 #define REFRESHTIME 100 //센서 탐지 대기 시간. 밀리초 기준.
-#define DBUPDATETIME 10// 데이터베이스를 새로 연결하기 위한 시간. 분단위 기준.
+#define DBUPDATETIME 10// 데이터베이스를 새로 연결하기 위한 시간. 분단위 기준.c
 
 MYSQL _mysql; //DB 연결기
 
+//Configure database information
 char *db_server = "203.250.32.155";
 char *db_user = "snslab";
 char *db_passwd = "snslab";
@@ -35,9 +43,11 @@ static float sensor_data[20] = { 0.0, }; //센서 데이터 동글
 static unsigned int arduino_data[8] = { 0, }; //아두이노 데이터 저장 배열 들어오는 값을 차례대로 int 형으로 저장하면된다.
 static unsigned short flowmeter_data[2] = { 0, }; //유량계 데이터.
 
+//Simplified method of querying
 int mysql_exec_sql(MYSQL *mysql, const char *create_definition) {
 	return mysql_real_query(mysql, create_definition, strlen(create_definition));
 }
+//Initialize the database connection.
 void mysql_initial() {
 	printf("데이터베이스 초기화\n");
 	if (mysql_init(&_mysql) == NULL) {
@@ -59,7 +69,7 @@ void mysql_initial() {
 	}
 }
 
-
+//sent data to the database server. The query has to be followed.
 void mysql_sendData(unsigned int first_humidity, int first_temperature,
 		unsigned int second_humidity, int second_temperature,
 		unsigned int third_humidity, int third_temperature,
@@ -162,6 +172,7 @@ void mysql_sendData(unsigned int first_humidity, int first_temperature,
 	//	memset(_query, ' ', 101); // 100개로 지정하면 끝에 i가 발생하여 쿼리를 날리지 못함.
 
 }
+//End mysql connection. Database server may disconnect if the connection goes too long. Use this method to disconnect before being disconnected.
 void mysql_end() {
 	mysql_close(&_mysql);
 	printf("데이터베이스 연결 종료\n");
@@ -250,6 +261,7 @@ void read_dht22_data(int DHT22_PIN, int check) {
 	}
 }
 
+// Prevent unexpected event when the process is killed.
 void sig_handler(int signo) {
 	printf("\n작업 종료됨\n");
 	printf("SIG :%d\n", signo);
